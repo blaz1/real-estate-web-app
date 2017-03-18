@@ -1,15 +1,23 @@
 package ftn.sct;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.mongodb.gridfs.GridFSDBFile;
 
 import ftn.sct.model.User;
 import ftn.sct.persistance.UserRepository;
@@ -22,6 +30,9 @@ public class UserController {
 
 	@Autowired
 	private UserRepository repository;
+
+	@Autowired
+	private GridFsTemplate gridFsTemplate;
 
 	@RequestMapping(value = "/find/{username}", method = RequestMethod.GET)
 	public User findUser(@PathVariable String username) {
@@ -47,7 +58,24 @@ public class UserController {
 			return rw;
 		}
 		user.setPassword(sfe.encode(user.getPassword()));
+
+		if (user.getPicture() != null) {
+			String pic = user.getPicture();
+			InputStream inputStream;
+			try {
+				// TODO retrieve stream from frontend
+				inputStream = new FileInputStream(pic);
+				String id = gridFsTemplate.store(inputStream, pic.substring(pic.lastIndexOf("/") + 1),
+						"image/" + pic.substring(pic.lastIndexOf(".") + 1)).getId().toString();
+				user.setPicture(id);
+
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			}
+		}
+
 		rw.setObject(repository.save(user));
+
 		return rw;
 	}
 
@@ -76,5 +104,14 @@ public class UserController {
 			rw.setError("User doesn't exist.");
 		}
 		return rw;
+	}
+
+	@RequestMapping(value = "/picture", method = RequestMethod.GET)
+	public InputStream getUserPicture(@PathVariable String id) {
+		Query q = new Query();
+		q.addCriteria(Criteria.where("_id").is(id));
+		GridFSDBFile gfsf = gridFsTemplate.findOne(q);
+		// TODO implement frontend accepting stream
+		return gfsf.getInputStream();
 	}
 }
