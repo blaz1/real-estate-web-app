@@ -39,20 +39,19 @@ public class UserController {
 		return c;
 	}
 
-	@RequestMapping(value = "/create", method = RequestMethod.POST)
+	@RequestMapping(value = "/", method = RequestMethod.POST)
 	public ResponseWrapper<User> createUser(@RequestBody User user) {
 		ResponseWrapper<User> rw = new ResponseWrapper<>();
-		if (repository.findByUsername(user.getUsername()) == null) {
-			user.setPassword(sfe.encode(user.getPassword()));
-			rw.setObject(repository.save(user));
-
-		} else {
+		if (repository.findByUsername(user.getUsername()) != null) {
 			rw.setError("Username taken");
+			return rw;
 		}
+		user.setPassword(sfe.encode(user.getPassword()));
+		rw.setObject(repository.save(user));
 		return rw;
 	}
 
-	@RequestMapping(value = "/update", method = RequestMethod.PUT)
+	@RequestMapping(value = "/", method = RequestMethod.PUT)
 	public ResponseWrapper<User> updateUser(@RequestBody User user) {
 		ResponseWrapper<User> rw = new ResponseWrapper<>();
 		User us = repository.findByUsername(user.getUsername());
@@ -60,6 +59,19 @@ public class UserController {
 			user.setId(us.getId());
 			repository.save(user);
 			rw.setObject(user);
+		} else {
+			rw.setError("User doesn't exist.");
+		}
+		return rw;
+	}
+
+	@RequestMapping(value = "/", method = RequestMethod.DELETE)
+	public ResponseWrapper<User> deleteUser(@RequestBody User user) {
+		ResponseWrapper<User> rw = new ResponseWrapper<>();
+		User us = repository.findByUsername(user.getUsername());
+		if (us != null) {
+			repository.delete(us);
+			rw.setObject(us);
 		} else {
 			rw.setError("User doesn't exist.");
 		}
