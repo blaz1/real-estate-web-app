@@ -3,13 +3,18 @@ package ftn.sct;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Calendar;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,36 +33,49 @@ public class UserController {
 
 	private BCryptPasswordEncoder sfe = new BCryptPasswordEncoder();
 
+	private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
 	@Autowired
 	private UserRepository repository;
 
 	@Autowired
 	private GridFsTemplate gridFsTemplate;
 
-	@RequestMapping(value = "/find/{username}", method = RequestMethod.GET)
-	public User findUser(@PathVariable String username) {
-		return repository.findByUsername(username);
+	@RequestMapping(value = "/{username}", method = RequestMethod.GET)
+	public ResponseEntity<User> findUser(@PathVariable String username) {
+		log.debug("Searching for user: " + username);
+		User u = repository.findByUsername(username);
+		if (u == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<>(u, HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/password/{username}/{password}", method = RequestMethod.GET)
-	public boolean validateUser(@PathVariable String username, @PathVariable String password) {
-		return sfe.matches(password, repository.findByUsername(username).getPassword());
+	public ResponseEntity<Boolean> validateUser(@PathVariable String username, @PathVariable String password) {
+		if (!sfe.matches(password, repository.findByUsername(username).getPassword())) {
+			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+		}
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/find", method = RequestMethod.POST)
-	public List<User> findUser(@RequestBody User user) {
+	@RequestMapping(value = "/find", method = RequestMethod.POST, consumes = "application/json")
+	public ResponseEntity<List<User>> findUser(@RequestBody User user) {
 		List<User> c = repository.findAll(Example.of(user));
-		return c;
+		if (c == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<>(c, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/", method = RequestMethod.POST)
-	public ResponseWrapper<User> createUser(@RequestBody User user) {
-		ResponseWrapper<User> rw = new ResponseWrapper<>();
+	@RequestMapping(method = RequestMethod.POST, consumes = "application/json")
+	public ResponseEntity<User> createUser(@RequestBody User user) {
 		if (repository.findByUsername(user.getUsername()) != null) {
-			rw.setError("Username taken");
-			return rw;
+			return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
 		}
 		user.setPassword(sfe.encode(user.getPassword()));
+		Calendar c = Calendar.getInstance();
+		user.setRegisteredDate(c.getTime());
 
 		if (user.getPicture() != null) {
 			String pic = user.getPicture();
@@ -68,42 +86,32 @@ public class UserController {
 				String id = gridFsTemplate.store(inputStream, pic.substring(pic.lastIndexOf("/") + 1),
 						"image/" + pic.substring(pic.lastIndexOf(".") + 1)).getId().toString();
 				user.setPicture(id);
-
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
-
-		rw.setObject(repository.save(user));
-
-		return rw;
+		ResponseEntity<User> re = new ResponseEntity<>(repository.save(user), HttpStatus.OK);
+		return re;
 	}
 
-	@RequestMapping(value = "/", method = RequestMethod.PUT)
-	public ResponseWrapper<User> updateUser(@RequestBody User user) {
-		ResponseWrapper<User> rw = new ResponseWrapper<>();
+	@RequestMapping(method = RequestMethod.PUT, consumes = "application/json")
+	public ResponseEntity<User> updateUser(@RequestBody User user) {
 		User us = repository.findByUsername(user.getUsername());
-		if (us != null) {
-			user.setId(us.getId());
-			repository.save(user);
-			rw.setObject(user);
-		} else {
-			rw.setError("User doesn't exist.");
+		if (us == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		return rw;
+		user.setId(us.getId());
+		return new ResponseEntity<>(repository.save(user), HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/", method = RequestMethod.DELETE)
-	public ResponseWrapper<User> deleteUser(@RequestBody User user) {
-		ResponseWrapper<User> rw = new ResponseWrapper<>();
+	@RequestMapping(method = RequestMethod.DELETE, consumes = "application/json")
+	public ResponseEntity<User> deleteUser(@RequestBody User user) {
 		User us = repository.findByUsername(user.getUsername());
-		if (us != null) {
-			repository.delete(us);
-			rw.setObject(us);
-		} else {
-			rw.setError("User doesn't exist.");
+		if (us == null) {
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		return rw;
+		repository.delete(us);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/picture", method = RequestMethod.GET)

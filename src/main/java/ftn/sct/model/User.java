@@ -19,8 +19,14 @@ public class User extends DbModel {
 	public User() {
 	}
 
-	public User(String firstName, String lastName) {
-		this.firstName = firstName;
+	public User(String username, String lastName, String password) {
+		this.username = username;
+		this.lastName = lastName;
+		this.password = password;
+	}
+
+	public User(String username, String lastName) {
+		this.username = username;
 		this.lastName = lastName;
 	}
 
