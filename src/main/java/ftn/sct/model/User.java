@@ -3,8 +3,9 @@ package ftn.sct.model;
 import java.sql.Timestamp;
 import java.util.Date;
 
-public class User extends DbModel {
+public class User {
 
+	private String id;
 	private String username;
 	private String email;
 	private String password;
@@ -28,6 +29,14 @@ public class User extends DbModel {
 	public User(String username, String lastName) {
 		this.username = username;
 		this.lastName = lastName;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String getUsername() {
