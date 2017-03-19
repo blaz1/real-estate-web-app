@@ -3,6 +3,11 @@ package ftn.sct.model;
 import java.sql.Timestamp;
 import java.util.Date;
 
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import ftn.sct.enums.UserTypeEnum;
+
+@Document
 public class User {
 
 	private String id;
@@ -13,17 +18,19 @@ public class User {
 	private String lastName;
 	private String telephone;
 	private String picture; // TODO implement picture
-	// TODO implement type enumerator
+	private UserTypeEnum type;
+	private String companyId;
 	private Date registeredDate;
 	private Timestamp lastVisited;
 
 	public User() {
 	}
 
-	public User(String username, String lastName, String password) {
+	public User(String username, String lastName, String password, String type) {
 		this.username = username;
 		this.lastName = lastName;
 		this.password = password;
+		this.type = UserTypeEnum.fromString(type);
 	}
 
 	public User(String username, String lastName) {
@@ -93,6 +100,22 @@ public class User {
 
 	public void setPicture(String picture) {
 		this.picture = picture;
+	}
+
+	public UserTypeEnum getType() {
+		return type;
+	}
+
+	public void setType(UserTypeEnum type) {
+		this.type = type;
+	}
+
+	public String getCompanyId() {
+		return companyId;
+	}
+
+	public void setCompanyId(String companyId) {
+		this.companyId = companyId;
 	}
 
 	public Date getRegisteredDate() {

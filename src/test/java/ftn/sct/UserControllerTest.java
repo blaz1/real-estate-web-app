@@ -51,10 +51,10 @@ public class UserControllerTest {
 
 	@Before
 	public void prepare() {
-		userRepository.save(new User("testFindUserByUsername", "testFindUserByUsernameLastName", "password"));
-		userRepository.save(new User("testFindUser", "testFindUserLastName", "password"));
-		userRepository.save(new User("testUpdateUser", "testUpdateUserLastName", "password"));
-		userRepository.save(new User("testDeleteUser", "testDeleteUserLastName", "password"));
+		userRepository.save(new User("testFindUserByUsername", "testFindUserByUsernameLastName", "password", "buyer"));
+		userRepository.save(new User("testFindUser", "testFindUserLastName", "password", "buyer"));
+		userRepository.save(new User("testUpdateUser", "testUpdateUserLastName", "password", "buyer"));
+		userRepository.save(new User("testDeleteUser", "testDeleteUserLastName", "password", "buyer"));
 	}
 
 	@PostConstruct
