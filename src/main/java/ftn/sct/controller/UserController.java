@@ -1,4 +1,4 @@
-package ftn.sct;
+package ftn.sct.controller;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;

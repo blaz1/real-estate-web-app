@@ -1,4 +1,4 @@
-package ftn.sct;
+package ftn.sct.persistance;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
