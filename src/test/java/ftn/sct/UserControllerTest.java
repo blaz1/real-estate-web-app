@@ -51,8 +51,9 @@ public class UserControllerTest {
 
 	@Before
 	public void prepare() {
-		userRepository.save(new User("testFindUserByUsername", "testFindUserByUsernameLastName", "password", "buyer"));
-		userRepository.save(new User("testFindUser", "testFindUserLastName", "password", "buyer"));
+		userRepository.save(new User("testGetUserById", "testGetUserByIdLastName", "password", "buyer"));
+		userRepository.save(new User("testGetUserByUsername", "testGetUserByUsernameLastName", "password", "buyer"));
+		userRepository.save(new User("testGetUser", "testGetUserLastName", "password", "buyer"));
 		userRepository.save(new User("testUpdateUser", "testUpdateUserLastName", "password", "buyer"));
 		userRepository.save(new User("testDeleteUser", "testDeleteUserLastName", "password", "buyer"));
 	}
@@ -64,38 +65,47 @@ public class UserControllerTest {
 
 	@After
 	public void cleanup() {
-		deleteIfEntityExists(userRepository.findByUsername("testFindUserByUsername"));
-		deleteIfEntityExists(userRepository.findByUsername("testFindUser"));
+		deleteIfEntityExists(userRepository.findByUsername("testGetUserById"));
+		deleteIfEntityExists(userRepository.findByUsername("testGetUserByUsername"));
+		deleteIfEntityExists(userRepository.findByUsername("testGetUser"));
 		deleteIfEntityExists(userRepository.findByUsername("testCreateUser"));
 		deleteIfEntityExists(userRepository.findByUsername("testUpdateUser"));
 		deleteIfEntityExists(userRepository.findByUsername("testDeleteUser"));
 	}
 
 	@Test
-	public void testFindUserByUsername() throws Exception {
-		mockMvc.perform(get(URL_PREFIX + "/testFindUserByUsername"))//
+	public void testGetUserById() throws Exception {
+		mockMvc.perform(get(URL_PREFIX + "/get/id/" + userRepository.findByUsername("testGetUserById").getId()))//
 				.andExpect(status().isOk())//
 				.andExpect(content().contentType(contentType))//
-				.andExpect(jsonPath("username").value("testFindUserByUsername"));
+				.andExpect(jsonPath("username").value("testGetUserById"));
 	}
 
 	@Test
-	public void testFindUserByFalseUsername() throws Exception {
-		mockMvc.perform(get(URL_PREFIX + "/546asd46548xcas"))//
+	public void testGetUserByUsername() throws Exception {
+		mockMvc.perform(get(URL_PREFIX + "/get/username/testGetUserByUsername"))//
+				.andExpect(status().isOk())//
+				.andExpect(content().contentType(contentType))//
+				.andExpect(jsonPath("username").value("testGetUserByUsername"));
+	}
+
+	@Test
+	public void testGetUserByFalseUsername() throws Exception {
+		mockMvc.perform(get(URL_PREFIX + "/get/username/nonexistingname123"))//
 				.andExpect(status().isNotFound());
 	}
 
 	@Test
-	public void testFindUser() throws Exception {
-		User dummyUser = new User("testFindUser", "testFindUserLastName");
+	public void testGetUser() throws Exception {
+		User dummyUser = new User("testGetUser", "testGetUserLastName");
 		MvcResult mvcResult = mockMvc
-				.perform(post(URL_PREFIX + "/find")//
+				.perform(post(URL_PREFIX + "/get")//
 						.contentType(contentType)//
 						.content(TestUtil.json(dummyUser)))//
 				.andExpect(status().isOk())//
 				.andExpect(content().contentType(contentType))//
 				.andExpect(jsonPath("$.[*].id").isNotEmpty())//
-				.andExpect(jsonPath("$.[*].username").value("testFindUser"))//
+				.andExpect(jsonPath("$.[*].username").value("testGetUser"))//
 				.andReturn();
 		log.debug(mvcResult.getResponse().getContentAsString());
 	}

@@ -1,7 +1,9 @@
 package ftn.sct.model;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import ftn.sct.enums.CompanyTypeEnum;
 
@@ -17,12 +19,17 @@ public class Company {
 	private String picture; // TODO implement picture
 	private String telephone;
 	private Address address;
-	private String[] employees; // not in hashCode & equals
+	private List<String> employees; // not in hashCode & equals
 	private Date registeredDate;
 	private Timestamp lastVisited;
 
 	public Company() {
 
+	}
+
+	public Company(String name) {
+		super();
+		this.name = name;
 	}
 
 	public Company(String name, String password, CompanyTypeEnum type, String vat) {
@@ -113,11 +120,11 @@ public class Company {
 		this.address = address;
 	}
 
-	public String[] getEmployees() {
+	public List<String> getEmployees() {
 		return employees;
 	}
 
-	public void setEmployees(String[] employees) {
+	public void setEmployees(ArrayList<String> employees) {
 		this.employees = employees;
 	}
 

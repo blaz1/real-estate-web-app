@@ -24,54 +24,64 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.mongodb.gridfs.GridFSDBFile;
 
-import ftn.sct.model.User;
-import ftn.sct.persistance.UserRepository;
+import ftn.sct.model.Company;
+import ftn.sct.persistance.CompanyRepository;
 
 @RestController
-@RequestMapping("/user")
-public class UserController {
+@RequestMapping("/company")
+public class CompanyController {
 
 	private BCryptPasswordEncoder sfe = new BCryptPasswordEncoder();
 
-	private static final Logger log = LoggerFactory.getLogger(UserController.class);
+	private static final Logger log = LoggerFactory.getLogger(CompanyController.class);
 
 	@Autowired
-	private UserRepository repository;
+	private CompanyRepository repository;
 
 	@Autowired
 	private GridFsTemplate gridFsTemplate;
 
 	@RequestMapping(value = "/get/id/{id}", method = RequestMethod.GET)
-	public ResponseEntity<User> getUserById(@PathVariable String id) {
-		log.debug("Searching for user, id: " + id);
-		User u = repository.findOne(id);
-		if (u == null) {
+	public ResponseEntity<Company> getCompanyById(@PathVariable String id) {
+		log.debug("Searching for company, id: " + id);
+		Company c = repository.findOne(id);
+		if (c == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		return new ResponseEntity<>(u, HttpStatus.OK);
+		return new ResponseEntity<>(c, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/get/username/{username}", method = RequestMethod.GET)
-	public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
-		log.debug("Searching for user, username: " + username);
-		User u = repository.findByUsername(username);
-		if (u == null) {
+	@RequestMapping(value = "/get/name/{name}", method = RequestMethod.GET)
+	public ResponseEntity<Company> getCompanyByName(@PathVariable String name) {
+		log.debug("Searching for company, name: " + name);
+		Company c = repository.findByName(name);
+		if (c == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
-		return new ResponseEntity<>(u, HttpStatus.OK);
+		return new ResponseEntity<>(c, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/password/{username}/{password}", method = RequestMethod.GET)
-	public ResponseEntity<Boolean> validateUser(@PathVariable String username, @PathVariable String password) {
-		if (!sfe.matches(password, repository.findByUsername(username).getPassword())) {
+	@RequestMapping(value = "/get/vat/{vat}", method = RequestMethod.GET)
+	public ResponseEntity<Company> getCompanyByVat(@PathVariable String vat) {
+		log.debug("Searching for company, name: " + vat);
+		Company c = repository.findByVat(vat);
+		if (c == null) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<>(c, HttpStatus.OK);
+	}
+
+	@RequestMapping(value = "/password/{name}/{password}", method = RequestMethod.GET)
+	public ResponseEntity<Boolean> validateCompany(@PathVariable String name, @PathVariable String password) {
+		if (!sfe.matches(password, repository.findByName(name).getPassword())) {
 			return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
 		}
 		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/get", method = RequestMethod.POST, consumes = "application/json")
-	public ResponseEntity<List<User>> getUser(@RequestBody User user) {
-		List<User> c = repository.findAll(Example.of(user));
+	public ResponseEntity<List<Company>> getCompany(@RequestBody Company company) {
+		List<Company> c = repository.findAll(Example.of(company));
 		if (c == null || c.isEmpty()) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -79,43 +89,42 @@ public class UserController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST, consumes = "application/json")
-	public ResponseEntity<User> createUser(@RequestBody User user) {
-		if (repository.findByUsername(user.getUsername()) != null) {
+	public ResponseEntity<Company> createCompany(@RequestBody Company company) {
+		if (repository.findByName(company.getName()) != null) {
 			return new ResponseEntity<>(HttpStatus.NOT_ACCEPTABLE);
 		}
-		user.setPassword(sfe.encode(user.getPassword()));
+		company.setPassword(sfe.encode(company.getPassword()));
 		Calendar c = Calendar.getInstance();
-		user.setRegisteredDate(c.getTime());
+		company.setRegisteredDate(c.getTime());
 
-		if (user.getPicture() != null) {
-			String pic = user.getPicture();
+		if (company.getPicture() != null) {
+			String pic = company.getPicture();
 			InputStream inputStream;
 			try {
 				// TODO retrieve stream from frontend
 				inputStream = new FileInputStream(pic);
 				String id = gridFsTemplate.store(inputStream, pic.substring(pic.lastIndexOf("/") + 1),
 						"image/" + pic.substring(pic.lastIndexOf(".") + 1)).getId().toString();
-				user.setPicture(id);
+				company.setPicture(id);
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			}
 		}
-		return new ResponseEntity<>(repository.save(user), HttpStatus.OK);
+		return new ResponseEntity<>(repository.save(company), HttpStatus.OK);
 	}
 
 	@RequestMapping(method = RequestMethod.PUT, consumes = "application/json")
-	public ResponseEntity<User> updateUser(@RequestBody User user) {
-		User us = repository.findOne(user.getId());
+	public ResponseEntity<Company> updateCompany(@RequestBody Company company) {
+		Company us = repository.findOne(company.getId());
 		if (us == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
-		user.setId(us.getId());
-		return new ResponseEntity<>(repository.save(user), HttpStatus.OK);
+		return new ResponseEntity<>(repository.save(company), HttpStatus.OK);
 	}
 
 	@RequestMapping(method = RequestMethod.DELETE, consumes = "application/json")
-	public ResponseEntity<User> deleteUser(@RequestBody User user) {
-		User us = repository.findOne(user.getId());
+	public ResponseEntity<Company> deleteCompany(@RequestBody Company company) {
+		Company us = repository.findOne(company.getId());
 		if (us == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
@@ -124,7 +133,7 @@ public class UserController {
 	}
 
 	@RequestMapping(value = "/picture", method = RequestMethod.GET)
-	public InputStream getUserPicture(@PathVariable String id) {
+	public InputStream getCompanyPicture(@PathVariable String id) {
 		Query q = new Query();
 		q.addCriteria(Criteria.where("_id").is(id));
 		GridFSDBFile gfsf = gridFsTemplate.findOne(q);

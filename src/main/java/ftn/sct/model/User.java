@@ -30,7 +30,7 @@ public class User {
 		this.username = username;
 		this.lastName = lastName;
 		this.password = password;
-		this.type = UserTypeEnum.fromString(type);
+		this.type = UserTypeEnum.valueOf(type.toUpperCase());
 	}
 
 	public User(String username, String lastName) {
