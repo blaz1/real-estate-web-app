@@ -8,7 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import javax.annotation.PostConstruct;
 
@@ -21,15 +24,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import ftn.sct.enums.CompanyTypeEnum;
 import ftn.sct.model.Company;
 import ftn.sct.persistance.CompanyRepository;
+import ftn.sct.persistance.FileStorageDao;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -50,6 +56,9 @@ public class CompanyControllerTest {
 	@Autowired
 	private CompanyRepository repository;
 
+	@Autowired
+	private FileStorageDao fileStorage;
+
 	@Before
 	public void prepare() {
 		repository.save(new Company("testGetCompanyById", "password", CompanyTypeEnum.DD, "vat123456"));
@@ -58,6 +67,27 @@ public class CompanyControllerTest {
 		repository.save(new Company("testGetCompany", "password", CompanyTypeEnum.DD, "vat123458"));
 		repository.save(new Company("testUpdateCompany", "password", CompanyTypeEnum.DD, "vat123459"));
 		repository.save(new Company("testDeleteCompany", "password", CompanyTypeEnum.DD, "vat123455"));
+		try {
+			String testGetPictureCompanyPictureId = fileStorage.store(
+					Files.newInputStream(Paths.get("src/test/resources/Desert.jpg")), "Desert.jpg", "image/jpeg", null);
+			Company testGetPictureCompany = new Company("testGetPictureCompany", "password", CompanyTypeEnum.DOO,
+					"vat123452123");
+			testGetPictureCompany.setPicture(testGetPictureCompanyPictureId);
+			repository.save(testGetPictureCompany);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		repository.save(new Company("testChangePictureCompany", "password", CompanyTypeEnum.DOO, "vat12345645123"));
+		try {
+			String testDeletePictureCompanyPictureId = fileStorage.store(
+					Files.newInputStream(Paths.get("src/test/resources/Desert.jpg")), "Desert.jpg", "image/jpeg", null);
+			Company testDeletePictureCompanz = new Company("testDeletePictureCompany", "password", CompanyTypeEnum.DD,
+					"vat123654321");
+			testDeletePictureCompanz.setPicture(testDeletePictureCompanyPictureId);
+			repository.save(testDeletePictureCompanz);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@PostConstruct
@@ -69,10 +99,16 @@ public class CompanyControllerTest {
 	public void cleanup() {
 		deleteIfEntityExists(repository.findByName("testGetCompanyById"));
 		deleteIfEntityExists(repository.findByName("testGetCompanyByName"));
+		deleteIfEntityExists(repository.findByName("testGetCompanyByVat"));
 		deleteIfEntityExists(repository.findByName("testGetCompany"));
 		deleteIfEntityExists(repository.findByName("testCreateCompany"));
 		deleteIfEntityExists(repository.findByName("testUpdateCompany"));
 		deleteIfEntityExists(repository.findByName("testDeleteCompany"));
+		deleteIfEntityExists(repository.findByName("testGetPictureCompany"));
+		fileStorage.removeByFileName("Desert.jpg");
+		deleteIfEntityExists(repository.findByName("testChangePictureCompany"));
+		fileStorage.removeByFileName("Chrysanthemum.jpg");
+		deleteIfEntityExists(repository.findByName("testDeletePictureCompany"));
 	}
 
 	@Test
@@ -136,14 +172,14 @@ public class CompanyControllerTest {
 	@Test
 	public void testUpdateCompany() throws Exception {
 		Company company = repository.findByName("testUpdateCompany");
-		company.setName("AfterTestName");
 		company.setEmail("testemailcompany@test.com");
+		company.setTelephone("031-031-031");
 		mockMvc.perform(put(URL_PREFIX)//
 				.contentType(contentType)//
 				.content(TestUtil.json(company)))//
 				.andExpect(status().isOk())//
 				.andExpect(content().contentType(contentType))//
-				.andExpect(jsonPath("$.name").value("AfterTestName"))//
+				.andExpect(jsonPath("$.telephone").value("031-031-031"))//
 				.andExpect(jsonPath("$.email").value("testemailcompany@test.com"));
 	}
 
@@ -158,7 +194,32 @@ public class CompanyControllerTest {
 
 	@Test
 	public void testGetCompanyPicture() throws Exception {
-		// TODO implement
+		Company company = repository.findByName("testGetPictureCompany");
+		mockMvc.perform(get(URL_PREFIX + "/picture/" + company.getPicture()))//
+				.andExpect(status().isOk())//
+				.andExpect(content().contentType(MediaType.MULTIPART_FORM_DATA));
+	}
+
+	@Test
+	public void testDeleteCompanyPicture() throws Exception {
+		Company company = repository.findByName("testDeletePictureCompany");
+		mockMvc.perform(delete(URL_PREFIX + "/picture/" + company.getPicture()))//
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	public void testChangeCompanyPicture() throws Exception {
+		Company company = repository.findByName("testChangePictureCompany");
+		MockMultipartFile multipartFile = new MockMultipartFile("file", "Chrysanthemum.jpg", "image/jpeg",
+				Files.newInputStream(Paths.get("src/test/resources/Chrysanthemum.jpg")));
+
+		mockMvc.perform(MockMvcRequestBuilders.fileUpload(URL_PREFIX + "/picture")//
+				.file(multipartFile)//
+				.param("userId", company.getId())//
+				.param("fileName", "Chrysanthemum.jpg")//
+				.param("contentType", "image/jpeg"))//
+				.andExpect(status().isOk())//
+				.andExpect(content().contentType(MediaType.TEXT_PLAIN_VALUE + ";charset=UTF-8"));
 	}
 
 	private void deleteIfEntityExists(Company company) {
